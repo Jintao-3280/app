@@ -43,7 +43,9 @@ st.session_state["baukasten_names"] = [bk1_name, bk2_name]
 st.session_state["bk1_products"] = bk1_products
 st.session_state["bk2_products"] = bk2_products
 # ---------- 汇总展示：Baukasten × Produkt ----------
-st.subheader("2. Der alte und der neue Baukasten und deren Produkte (Vorschau)")
+
+st.markdown("Der alte und der neue Baukasten und deren Produkte (Vorschau)")
+
 
 if not bk1_products and not bk2_products:
     st.info("Bitte geben Sie in mindestens einen der Baukästen mindestens ein Produkt ein.")
@@ -67,10 +69,10 @@ else:
     - die Produkt × Modul-(Hauptkomponenten)-Matrix,
     - die Plattform/Baukasten × Modul-Matrix,
     - sowie die KPI-Berechnung zur Bewertung der Übergangsphase.
- """)
+    """)
 
-    # ========== 新增：定义两个 Baukasten 中的模块（Hauptkomponenten） ==========
-st.subheader("3. Definition der Module in den beiden Baukästen")
+# ========== 新增：定义两个 Baukasten 中的模块（Hauptkomponenten） ==========
+st.subheader("2. Definition der Module in den beiden Baukästen")
 
 st.markdown(f"""
 Unten steht eine editierbare Tabelle zur Definition von:   
@@ -178,12 +180,10 @@ if st.button(
 
 st.markdown("---")
 
-st.subheader("4. Zuordnung von Produkten zu Modulen (Produkt–Modul-Matrix)")
+st.subheader("3. Zuordnung von Produkten zu Modulen (Produkt–Modul-Matrix)")
 
 st.markdown("""
 In diesem Schritt wird festgelegt, **welche Module von welchem Produkt verwendet werden**.  
-Für Produkte im alten Baukasten werden nur Module aus dem alten Baukasten und gemeinsame Module angezeigt,  
-für Produkte im neuen Baukasten nur Module aus dem neuen Baukasten und gemeinsame Module.
 """)
 
 # ---------- 初始化 session_state（只在第一次使用时） ----------
@@ -197,7 +197,7 @@ if "pxb_last_saved_product" not in st.session_state:
     st.session_state["pxb_last_saved_product"] = None
 
 # ---------- “下一步”按钮：启动产品-模块步骤 ----------
-if st.button("Nächster Schritt: Produkt–Modul-Zuordnung starten", key="btn_start_pxb"):
+if st.button("Produkt–Modul-Zuordnung starten", key="btn_start_pxb"):
     st.session_state["pxb_started"] = True
 
 # 只有在已启动的情况下才显示后续界面
@@ -300,48 +300,44 @@ if st.session_state["pxb_started"]:
 # für verschiedene Übergangsszenarien (z. B. unterschiedliche Zwischen-Baukasten-Varianten) berechnet werden.
 # """)
 
-# ============================================================
-# 5. Definition des Zwischen-Baukastens und Modulanzahl-Vergleich
-# ============================================================
+# ============================================
+# 4. Definition des Zwischen-Baukastens (Zwischen 1 & Zwischen 2)
+# ============================================
 
-# 初始化“是否进入第 5 步”的状态
 if "zwischen_started" not in st.session_state:
     st.session_state["zwischen_started"] = False
 
 st.markdown("---")
-st.subheader("5. Definition des Zwischen-Baukastens")
+st.subheader("4. Definition des Zwischen-Baukastens (Zwischen 1 & Zwischen 2)")
+st.markdown("""
+In diesem Schritt werden **zwei verschiedene Zwischen-Baukasten-Szenarien** definiert:
 
-# ---------- 先检查前 1–4 步是否完成 ----------
-# 1/2 步：至少有产品
+- **Zwischen 1**: erste Auswahl von Produkten  
+- **Zwischen 2**: zweite Auswahl von Produkten  
+
+Diese Szenarien können später hinsichtlich ihrer KPI verglichen werden.
+""")
+
+# ---------- 前置条件检查：必须完成前面的 Schritte ----------
 bk1_products = st.session_state.get("bk1_products", [])
 bk2_products = st.session_state.get("bk2_products", [])
 has_products = bool(bk1_products or bk2_products)
 
-# 3 步：模块表已存在（module_df 在你前面初始化时就写入了）
 has_modules = "module_df" in st.session_state
-
-# 4 步：Produkt–Modul-Matrix 已生成
 pxb_matrix = st.session_state.get("pxb_matrix", None)
 has_pxb = pxb_matrix is not None
 
 if not (has_products and has_modules and has_pxb):
-    st.info("""
-Bitte führen Sie zunächst die vorne Schritte durch.
-""")
+    st.info("Bitte führen Sie zunächst die vorherigen Schritte (1–3) vollständig durch.")
 else:
-    # 只有在前 1–4 步都完成的前提下，才显示“开始第 5 步”的按钮
+    # 先有一个按钮控制是否展开 Zwischen 步骤
     if not st.session_state["zwischen_started"]:
-        if st.button("Nächster Schritt: Zwischen-Baukasten definieren", key="btn_start_zwischen"):
+        if st.button("Zwischen-Baukasten-Szenarien definieren", key="btn_start_zwischen"):
             st.session_state["zwischen_started"] = True
 
-    # 只有用户点击了按钮，才展开第 5 步的所有内容
     if st.session_state["zwischen_started"]:
 
-        st.markdown("""
-        In diesem Schritt wird festgelegt, **welche Produkte im Zwischen-Baukasten enthalten sind**.  
-        """)
-
-        # ---------- 1. Alle Produkte (inkl. zugehörigem Baukasten) einsammeln ----------
+        # ---------- 1. 产品列表（用于两个 Zwischen 方案共用） ----------
         product_rows = []
         for p in bk1_products:
             product_rows.append({"Produkt": p, "Baukasten": bk1_name})
@@ -351,124 +347,408 @@ else:
         if not product_rows:
             st.info("Es wurden noch keine Produkte definiert. Bitte zuerst Produkte für die Baukästen eingeben.")
         else:
-            # ---------- 2. Zwischen-Auswahl-DataFrame mit gespeicherten Werten vorbereiten ----------
-            # 之前用户勾选的 Zwischen 结果（字典：Produkt -> Bool）
-            prev_selection = st.session_state.get("zwischen_selection", {})
+            current_products = [row["Produkt"] for row in product_rows]
 
-            for row in product_rows:
-                prod_name = row["Produkt"]
-                # 默认 False，如果之前有选择则保持
-                row["Im Zwischen-Baukasten?"] = bool(prev_selection.get(prod_name, False))
+            # ========== 2. Zwischen 1 的表格 ==========
+            st.markdown("### Zwischen 1 – Produktauswahl")
 
-            df_zwischen = pd.DataFrame(product_rows)
-            df_zwischen.index = range(1, len(df_zwischen) + 1)
+            # 判断是否需要初始化 / 重建模板
+            need_init_zw1 = False
+            if "zw1_df_template" not in st.session_state:
+                need_init_zw1 = True
+            else:
+                df_old = st.session_state["zw1_df_template"]
+                if df_old["Produkt"].tolist() != current_products:
+                    need_init_zw1 = True
 
-            # ---------- 3. 可编辑表格：选择 Zwischen 中包含哪些产品 ----------
-            st.markdown("Wählen Sie in der folgenden Tabelle aus, welche Produkte im Zwischen-Baukasten enthalten sind:")
+            if need_init_zw1:
+                init_rows_1 = []
+                for row in product_rows:
+                    init_rows_1.append(
+                        {
+                            "Produkt": row["Produkt"],
+                            "Baukasten": row["Baukasten"],
+                            "Im Zwischen 1?": False,
+                        }
+                    )
+                df_zw1_init = pd.DataFrame(init_rows_1)
+                df_zw1_init.index = range(1, len(df_zw1_init) + 1)
+                st.session_state["zw1_df_template"] = df_zw1_init
 
-            edited_zwischen = st.data_editor(
-                df_zwischen,
+            df_zw1_template = st.session_state["zw1_df_template"]
+
+            edited_zw1 = st.data_editor(
+                df_zw1_template,
                 use_container_width=True,
-                num_rows="fixed",   # 行数固定，不允许增删行
-                key="zwischen_editor",
+                num_rows="fixed",
+                key="zwischen1_editor",
             )
 
-            # 把选择结果写回 session_state，方便后续使用
-            selection_dict = {}
-            for _, r in edited_zwischen.iterrows():
-                selection_dict[r["Produkt"]] = bool(r["Im Zwischen-Baukasten?"])
-            st.session_state["zwischen_selection"] = selection_dict
+            # 从编辑结果中提取 Zwischen 1 的产品选择
+            selection_zw1 = {}
+            for _, r in edited_zw1.iterrows():
+                selection_zw1[r["Produkt"]] = bool(r["Im Zwischen 1?"])
 
-            zwischen_products = [p for p, flag in selection_dict.items() if flag]
-            st.session_state["zwischen_products"] = zwischen_products
+            st.session_state["zwischen1_selection"] = selection_zw1
+            zwischen1_products = [p for p, flag in selection_zw1.items() if flag]
+            st.session_state["zwischen1_products"] = zwischen1_products
 
-            if not zwischen_products:
-                st.warning("Der Zwischen-Baukasten enthält derzeit noch keine Produkte.")
+            if not zwischen1_products:
+                st.warning("Zwischen 1 enthält derzeit noch keine Produkte.")
             else:
-                st.success(
-                    "Produkte im Zwischen-Baukasten: "
-                    + ", ".join(zwischen_products)
-                )
+                st.success("Produkte in Zwischen 1: " + ", ".join(zwischen1_products))
 
-            # ---------- 4. Modulanzahl für alten BK, Zwischen-BK und neuen BK berechnen ----------
-            # 这里的 pxb_matrix 已经在前面 has_pxb 检查过不为 None
+            # ========== 3. Zwischen 2 的表格 ==========
+            st.markdown("### Zwischen 2 – Produktauswahl")
+
+            need_init_zw2 = False
+            if "zw2_df_template" not in st.session_state:
+                need_init_zw2 = True
+            else:
+                df_old2 = st.session_state["zw2_df_template"]
+                if df_old2["Produkt"].tolist() != current_products:
+                    need_init_zw2 = True
+
+            if need_init_zw2:
+                init_rows_2 = []
+                for row in product_rows:
+                    init_rows_2.append(
+                        {
+                            "Produkt": row["Produkt"],
+                            "Baukasten": row["Baukasten"],
+                            "Im Zwischen 2?": False,
+                        }
+                    )
+                df_zw2_init = pd.DataFrame(init_rows_2)
+                df_zw2_init.index = range(1, len(df_zw2_init) + 1)
+                st.session_state["zw2_df_template"] = df_zw2_init
+
+            df_zw2_template = st.session_state["zw2_df_template"]
+
+            edited_zw2 = st.data_editor(
+                df_zw2_template,
+                use_container_width=True,
+                num_rows="fixed",
+                key="zwischen2_editor",
+            )
+
+            # 从编辑结果中提取 Zwischen 2 的产品选择
+            selection_zw2 = {}
+            for _, r in edited_zw2.iterrows():
+                selection_zw2[r["Produkt"]] = bool(r["Im Zwischen 2?"])
+
+            st.session_state["zwischen2_selection"] = selection_zw2
+            zwischen2_products = [p for p, flag in selection_zw2.items() if flag]
+            st.session_state["zwischen2_products"] = zwischen2_products
+
+            if not zwischen2_products:
+                st.warning("Zwischen 2 enthält derzeit noch keine Produkte.")
+            else:
+                st.success("Produkte in Zwischen 2: " + ", ".join(zwischen2_products))
+
+            # ========== 4. 基于 Produkt–Modul-Matrix 计算模块数量 ==========
             pxb = pxb_matrix.copy()
-
-            # 只保留矩阵中真正存在的产品行（防止产品列表变化导致的缺失）
             existing_products = [p for p in pxb.index if p in (bk1_products + bk2_products)]
             pxb = pxb.loc[existing_products]
 
-            # — Baukasten 1: 所有属于 bk1 的产品使用到的模块合集 —
-            if bk1_products:
-                used_bk1 = pxb.loc[[p for p in bk1_products if p in pxb.index]].any(axis=0)
-                n_bk1_modules = int(used_bk1.sum())
-            else:
-                n_bk1_modules = 0
+            def count_modules_for_products(product_list):
+                """根据给定的产品列表，计算使用到的不同模块数量。"""
+                if not product_list:
+                    return 0
+                valid = [p for p in product_list if p in pxb.index]
+                if not valid:
+                    return 0
+                used = pxb.loc[valid].any(axis=0)  # 某列有 True 就表示该模块被至少一个产品使用
+                return int(used.sum())
 
-            # — Baukasten 2: 同理 —
-            if bk2_products:
-                used_bk2 = pxb.loc[[p for p in bk2_products if p in pxb.index]].any(axis=0)
-                n_bk2_modules = int(used_bk2.sum())
-            else:
-                n_bk2_modules = 0
+            # Alter / Neuer Baukasten
+            n_bk1_modules = count_modules_for_products(bk1_products)
+            n_bk2_modules = count_modules_for_products(bk2_products)
 
-            # — Zwischen-Baukasten: 只看被选中的产品 —
-            if zwischen_products:
-                valid_zw = [p for p in zwischen_products if p in pxb.index]
-                if valid_zw:
-                    used_zw = pxb.loc[valid_zw].any(axis=0)
-                    n_zw_modules = int(used_zw.sum())
-                else:
-                    n_zw_modules = 0
-            else:
-                n_zw_modules = 0
+            # Zwischen 1 / Zwischen 2
+            n_zw1_modules = count_modules_for_products(zwischen1_products)
+            n_zw2_modules = count_modules_for_products(zwischen2_products)
 
-            # ---------- 5. 用柱状图展示三个 Baukästen 的模块数量 ----------
-            st.markdown("### Vergleich der Modulanzahl (alter BK, Zwischen-BK, neuer BK)")
+            # ========== 5. 可视化：比较四个“Baukasten”的模块数量 ==========
+            st.markdown("### Vergleich der Modulanzahl (alter BK, Zwischen 1, Zwischen 2, neuer BK)")
 
             df_bar = pd.DataFrame(
                 {
                     "Anzahl unterschiedlicher Module": [
                         n_bk1_modules,
-                        n_zw_modules,
+                        n_zw1_modules,
+                        n_zw2_modules,
                         n_bk2_modules,
                     ]
                 },
-                index=[bk1_name, "Zwischen", bk2_name],
+                index=[bk1_name, "Zwischen 1", "Zwischen 2", bk2_name],
             )
 
             st.bar_chart(df_bar)
-            st.markdown("### Liniengrafik: Modulanzahl im Vergleich")
-            st.line_chart(df_bar)
-            st.markdown("""
-Die Balkengrafik zeigt die Anzahl unterschiedlicher Module, die in den jeweiligen
-Baukästen benötigt werden (auf Basis der Produkt–Modul-Matrix):
 
-- **Alter Baukasten**: Module, die von Produkten im alten Baukasten verwendet werden  
-- **Zwischen-Baukasten**: Module, die von den ausgewählten Zwischen-Produkten verwendet werden  
-- **Neuer Baukasten**: Module, die von Produkten im neuen Baukasten verwendet werden  
+# ============================================
+# 5. KPI-Vergleich der Zwischen-Szenarien
+# ============================================
 
-Diese Kennzahlen können im weiteren Verlauf zur Bewertung verschiedener
-Zwischen-Baukasten-Szenarien herangezogen werden.
-""")
-
+st.markdown("---")
+st.subheader("5. KPI-Vergleich der Zwischen-Szenarien")
+st.markdown("### 5.1 Ingenieurtechnische KPI")
 
 st.markdown("""
-Nächste Schritte:
+In diesem Abschnitt werden die beiden Zwischen-Baukasten-Szenarien **Zwischen 1** und **Zwischen 2**
+hinsichtlich ausgewählter **ingenieurtechnischer Kennzahlen (KPI)** verglichen:
 
-Die Einführung einer Plattform zwischen MQB und MEB, die vorläufig „zwischen“ genannt wird.
-
-Betrachtung verschiedener Kombinationen innerhalb von „zwischen“.
-
-Zum Beispiel:
-
-– zwischen 1 umfasst folgende Produkte: Golf, Passat, Tiguan, ID.3, ID.4.
-
-– zwischen 2 umfasst folgende Produkte: Golf, Passat, ID.3, ID.4.
-
-Bewertung der wirtschaftlichen Effizienz dieser beiden Varianten (unter Berücksichtigung verschiedener relevanter Faktoren wie Komplexität, Marge usw.).
-Komplexe Gleichungen
-
-Einführung einer Zeitachse.
-
+1. **KPI 1 – Modulanzahl**: Wie viele unterschiedliche Module werden im Szenario benötigt?  
+2. **KPI 2 – Wiederverwendungsrate**: Welcher Anteil der Module wird aus bestehenden Baukästen wiederverwendet?  
+3. **KPI 3 – Ähnlichkeit zum neuen Baukasten**: Wie stark ähnelt das Szenario dem neuen Baukasten hinsichtlich der verwendeten Module?
 """)
+
+# ---------- 前置条件检查 ----------
+zwischen1_products = st.session_state.get("zwischen1_products", [])
+zwischen2_products = st.session_state.get("zwischen2_products", [])
+pxb_matrix = st.session_state.get("pxb_matrix", None)
+has_module_df = "module_df" in st.session_state
+
+if not (zwischen1_products or zwischen2_products):
+    st.info("Bitte definieren Sie zuerst die Zwischen-Szenarien (Zwischen 1 und/oder Zwischen 2).")
+elif pxb_matrix is None or not has_module_df:
+    st.info("Für die KPI-Berechnung werden die Moduldefinition (Schritt 3) und die Produkt–Modul-Matrix (Schritt 4) benötigt.")
+else:
+    # ========== 1. 从模块表中提取 bk1 / bk2 / 共用模块 ==========
+    module_df = st.session_state["module_df"].copy()
+    module_df = module_df.dropna(how="all").fillna("")
+
+    col_bk1_specific = "bk1-spezifische Module"
+    col_bk2_specific = "bk2-spezifische Module"
+    col_shared       = "Gemeinsame Module"
+
+    bk1_modules = [str(x).strip() for x in module_df[col_bk1_specific] if str(x).strip() != ""]
+    bk2_modules = [str(x).strip() for x in module_df[col_bk2_specific] if str(x).strip() != ""]
+    shared_modules = [str(x).strip() for x in module_df[col_shared]     if str(x).strip() != ""]
+
+    # 共享模块视为两个 Baukästen 都在使用
+    modules_bk1_total = set(bk1_modules) | set(shared_modules)
+    modules_bk2_total = set(bk2_modules) | set(shared_modules)
+    modules_all_base  = modules_bk1_total | modules_bk2_total   # “已有模块池”，用于算复用率
+
+    # ========== 2. 辅助函数：根据产品集合求“该方案用到的模块集合” ==========
+    def modules_for_products(products, pxb: pd.DataFrame) -> set:
+        """给定一个产品列表，从 Produkt–Modul-Matrix 中求出该方案使用到的所有模块集合。"""
+        if not products:
+            return set()
+        valid = [p for p in products if p in pxb.index]
+        if not valid:
+            return set()
+        used_cols = pxb.loc[valid].any(axis=0)  # 某列只要有一个 True，就表示该模块被用了
+        return set(used_cols[used_cols].index)
+
+    pxb = pxb_matrix.copy()
+    modules_zw1 = modules_for_products(zwischen1_products, pxb)
+    modules_zw2 = modules_for_products(zwischen2_products, pxb)
+
+    # ========== 3. 计算三个工程类 KPI ==========
+    def compute_engineering_kpis(modules_zw: set):
+        """
+        返回 (模块总数, 模块复用率, 平台接近度_BK2)
+
+        - 模块总数: |Module_ZW|
+        - 模块复用率: |Module_ZW ∩ (Module_BK1_total ∪ Module_BK2_total)| / |Module_ZW|
+        - 平台接近度: |Module_ZW ∩ Module_BK2_total| / |Module_ZW|
+        """
+        count = len(modules_zw)
+        if count == 0:
+            return 0, 0.0, 0.0
+
+        reused = len(modules_zw & modules_all_base) / count
+        similarity_bk2 = len(modules_zw & modules_bk2_total) / count
+        return count, reused, similarity_bk2
+
+    k1_zw1, k2_zw1, k3_zw1 = compute_engineering_kpis(modules_zw1)
+    k1_zw2, k2_zw2, k3_zw2 = compute_engineering_kpis(modules_zw2)
+
+    # ========== 4. KPI 1：文字 + 公式 + 柱状图 ==========
+    st.markdown("#### KPI 1 – Modulanzahl")
+
+    st.markdown("""
+**Definition:** Anzahl der unterschiedlichen Module, die im jeweiligen Zwischen-Szenario verwendet werden.  
+Je weniger Module benötigt werden, desto niedriger sind Entwicklungs-, Test-, Logistik- und Lageraufwände.
+""")
+    st.latex(r"KPI_{1}(ZW) = \left| Module_{ZW} \right|")
+
+    df_kpi1 = pd.DataFrame(
+        {"KPI 1 – Modulanzahl": [k1_zw1, k1_zw2]},
+        index=["Zwischen 1", "Zwischen 2"],
+    )
+    st.bar_chart(df_kpi1)
+
+    # ========== 5. KPI 2：文字 + 公式 + 柱状图 ==========
+    st.markdown("#### KPI 2 – Wiederverwendungsrate")
+
+    st.markdown(f"""
+**Definition:** Anteil der Module im Zwischen-Szenario, die bereits in den bestehenden Baukästen  
+({bk1_name}, {bk2_name} bzw. gemeinsamen Modulen) verwendet werden.  
+
+Je höher diese Rate, desto besser werden bestehende Module wiederverwendet und desto geringer ist der Bedarf an Neuentwicklungen.
+""")
+    st.latex(
+        r"KPI_{2}(ZW) = \frac{\left| Module_{ZW} \cap "
+        r"\left(Module_{BK1}^{gesamt} \cup Module_{BK2}^{gesamt}\right) \right|}"
+        r"{\left| Module_{ZW} \right|}"
+    )
+
+    df_kpi2 = pd.DataFrame(
+        {"KPI 2 – Wiederverwendungsrate": [k2_zw1, k2_zw2]},
+        index=["Zwischen 1", "Zwischen 2"],
+    )
+    st.bar_chart(df_kpi2)
+
+    # ========== 6. KPI 3：文字 + 公式 + 柱状图 ==========
+    st.markdown("#### KPI 3 – Ähnlichkeit zum neuen Baukasten")
+
+    st.markdown(f"""
+**Definition:** Anteil der im Zwischen-Szenario verwendeten Module, die auch im neuen Baukasten ({bk2_name})  
+verwendet werden (inklusive gemeinsamer Module).  
+
+Je höher dieser Wert, desto „näher“ liegt das Szenario am Zielzustand des neuen Baukastens.
+""")
+    st.latex(
+        r"KPI_{3}(ZW) = \frac{\left| Module_{ZW} \cap Module_{BK2}^{gesamt} \right|}"
+        r"{\left| Module_{ZW} \right|}"
+    )
+
+    df_kpi3 = pd.DataFrame(
+        {"KPI 3 – Ähnlichkeit zum neuen Baukasten": [k3_zw1, k3_zw2]},
+        index=["Zwischen 1", "Zwischen 2"],
+    )
+    st.bar_chart(df_kpi3)
+
+    # ========== 7. 小结表格（可选，保留一个总览） ==========
+    st.markdown("##### Übersicht (numerische Werte)")
+
+    df_kpi_overview = pd.DataFrame(
+        {
+            "Zwischen 1": [k1_zw1, k2_zw1, k3_zw1],
+            "Zwischen 2": [k1_zw2, k2_zw2, k3_zw2],
+        },
+        index=[
+            "KPI 1: Modulanzahl",
+            "KPI 2: Wiederverwendungsrate",
+            "KPI 3: Ähnlichkeit zu neuem Baukasten",
+        ],
+    )
+    st.dataframe(df_kpi_overview, use_container_width=True)
+
+    # ============================================
+    # 5.1 Normalisierung der ingenieurtechnischen KPI
+    # ============================================
+
+    st.markdown("#### Normalisierung der ingenieurtechnischen KPI")
+
+    st.markdown(r"""
+    Um die KPI vergleichbar zu machen werden sie auf den Bereich $[0,1]$ abgebildet und in die gleiche Richtung
+    (**je größer desto besser**) transformiert.
+
+    **1. Richtungsvereinheitlichung**
+
+    Wir transformieren ihn in eine Nutzenkennzahl
+
+    $$
+    KPI_1^{(+)}(ZW_i)
+    = \frac{\min\big(KPI_1(ZW_1),\,KPI_1(ZW_2)\big)}{KPI_1(ZW_i)}
+    $$
+
+    sodass größere Werte einer geringeren Modulanzahl (also einer besseren Ausprägung) entsprechen.
+
+    **2. Skalierung auf $[0,1]$**
+
+    Für KPI&nbsp;1 skalieren wir diese Nutzenkennzahl so, dass das beste Zwischen-Szenario den Wert 1 erhält:
+
+    $$
+    KPI_1^{norm}(ZW_i)
+    = \frac{KPI_1^{(+)}(ZW_i)}{\max_j KPI_1^{(+)}(ZW_j)} \in [0,1]
+    $$
+
+    Für KPI&nbsp;2 (Wiederverwendungsrate) und KPI&nbsp;3 (Ähnlichkeit zum neuen Baukasten)
+    liegen die ursprünglichen Werte bereits im Intervall $[0,1]$ und sind nutzenorientiert, daher setzen wir
+
+    $$
+    KPI_2^{norm}(ZW_i) = KPI_2(ZW_i), \qquad
+    KPI_3^{norm}(ZW_i) = KPI_3(ZW_i)
+    $$
+
+    und interpretieren sie direkt als normalisierte Werte.
+    """)
+
+    # -------- 1. KPI 1: von „weniger ist besser“ zu „mehr ist besser“ --------
+    k1_values = [k1_zw1, k1_zw2]  # Modulanzahl in Zwischen 1 / 2
+    k1_min = min(k1_values)
+
+    def safe_reverse(x, min_val):
+        # 防止除 0：理论上模块数不可能为 0，这里只是保险
+        return (min_val / x) if x > 0 else 0.0
+
+    # Richtung vereinheitlicht (größer = besser)
+    k1_plus = [safe_reverse(v, k1_min) for v in k1_values]
+
+    # Auf [0,1] skaliert: bestes Szenario = 1, anderes < 1
+    k1_max_plus = max(k1_plus) if k1_plus else 1.0
+    k1_norm = [v / k1_max_plus for v in k1_plus]
+
+    # -------- 2. KPI 2 und KPI 3: liegen bereits in [0,1] --------
+    # 直接把原始值当作归一化后的值
+    k2_norm = [k2_zw1, k2_zw2]  # Wiederverwendungsrate
+    k3_norm = [k3_zw1, k3_zw2]  # Ähnlichkeit zum neuen BK
+
+    # -------- 3. Zusammenstellung in einer Übersichtstabelle --------
+    df_kpi_norm = pd.DataFrame(
+        {
+            "Zwischen 1": [k1_norm[0], k2_norm[0], k3_norm[0]],
+            "Zwischen 2": [k1_norm[1], k2_norm[1], k3_norm[1]],
+        },
+        index=[
+            "KPI 1: Modulanzahl (normalisiert)",
+            "KPI 2: Wiederverwendungsrate (normalisiert)",
+            "KPI 3: Ähnlichkeit zum neuen Baukasten (normalisiert)",
+        ],
+    )
+
+    st.markdown(r"""
+    Die nachfolgende Tabelle zeigt die **normalisierten Ingenieur-KPI**.
+    Alle Werte liegen im Bereich $[0,1]$, wobei höhere Werte jeweils eine **bessere Ausprägung** des KPI bedeuten.
+    """)
+    st.dataframe(df_kpi_norm, use_container_width=True)
+
+    st.markdown("###### Grafischer Vergleich der normalisierten Ingenieur-KPI")
+    st.bar_chart(df_kpi_norm.T)
+
+    # -------- 4. Gesamter Ingenieur-KPI (als einfacher Durchschnitt) --------
+    # 目前先用三个归一化 KPI 的算术平均，后续如果需要可以引入权重 w1, w2, w3
+    eng_score_zw1 = (k1_norm[0] + k2_norm[0] + k3_norm[0]) / 3.0
+    eng_score_zw2 = (k1_norm[1] + k2_norm[1] + k3_norm[1]) / 3.0
+
+    df_eng_total = pd.DataFrame(
+        {
+            "Zwischen 1": [eng_score_zw1],
+            "Zwischen 2": [eng_score_zw2],
+        },
+        index=["Gesamt-KPI (Ingenieur)"],
+    )
+
+    st.markdown(r"""
+    **Gesamter Ingenieur-KPI**
+
+    Zur weiteren Auswertung fassen wir die drei normalisierten Ingenieur-KPI zu einem
+    einzigen **Ingenieur-Gesamtindex** zusammen (hier zunächst als einfacher Durchschnitt):
+
+    $$
+    KPI_{\text{Ing}}(ZW_i)
+    = \frac{KPI_1^{norm}(ZW_i) + KPI_2^{norm}(ZW_i) + KPI_3^{norm}(ZW_i)}{3}
+    $$
+
+    Dieser Gesamtwert liegt ebenfalls im Intervall $[0,1]$ und kann später mit einem
+    wirtschaftlichen Gesamt-KPI kombiniert werden.
+    """)
+
+    st.dataframe(df_eng_total, use_container_width=True)
+
+
